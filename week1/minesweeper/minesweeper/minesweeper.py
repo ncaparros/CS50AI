@@ -166,7 +166,7 @@ class MinesweeperAI():
         self.mines.add(cell)
         for sentence in self.knowledge.copy():
             sentence.mark_mine(cell)
-            #If the sentence is now empty, remove it from the knowledge base
+            # If the sentence is now empty, remove it from the knowledge base
             if (sentence.cells) == 0:
                 self.knowledge.remove(sentence)
 
@@ -178,7 +178,7 @@ class MinesweeperAI():
         self.safes.add(cell)
         for sentence in self.knowledge:
             sentence.mark_safe(cell)
-            #If the sentence is now empty, remove it from the knowledge base
+            # If the sentence is now empty, remove it from the knowledge base
             if len(sentence.cells) == 0:
                 self.knowledge.remove(sentence)
 
@@ -198,53 +198,56 @@ class MinesweeperAI():
                if they can be inferred from existing knowledge
         """
 
-        #Mark cell as mode made and mark it as safe
+        # Mark cell as mode made and mark it as safe
+
         self.moves_made.add(cell)
         self.mark_safe(cell)
 
-        #Get surroundings cells (mines and unknowns)
+        # Get surroundings cells (mines and unknowns)
+
         surroundings = self.get_surrounding_cells(cell)
-        if len(surroundings) > 0 :
+        if len(surroundings) > 0:
             for surrounding in surroundings.copy():
-                #If surrounding cell is a known mine, update the sentence
+
+                # If surrounding cell is a known mine, update the sentence
                 if surrounding in self.mines:
                     count = count - 1
                     surroundings.remove(surrounding)
             newSentence = Sentence(surroundings, count)
 
-            #If the sentence not in knowledge base, add it
+            # If the sentence not in knowledge base, add it
             if newSentence not in self.knowledge and len(newSentence.cells) > 0:
                 self.knowledge.append(newSentence)
                 self.process_knowledge(surroundings, count)
 
-                #Look for subsets in the knowledge base
-                for sentence in self.knowledge.copy() :
+                # Look for subsets in the knowledge base
+                for sentence in self.knowledge.copy():
                     if sentence != newSentence and len(sentence.cells) > 0:
-                        #There is a subset of the new sentence in the knowledge base
-                        if sentence.cells.issubset(newSentence.cells) and sentence != newSentence :
+                        # There is a subset of the new sentence in the knowledge base
+                        if sentence.cells.issubset(newSentence.cells) and sentence != newSentence:
                             newCount = newSentence.count - sentence.count
                             subSet = newSentence.cells.difference(sentence.cells)
                             self.knowledge.append(Sentence(subSet, newCount))
-                            #Remove the now useless sentence from knowledge base
+                            # Remove the now useless sentence from knowledge base
                             if newSentence in self.knowledge:
                                 self.knowledge.remove(newSentence)
-                            #Update the knowledge base
+                            # Update the knowledge base
                             self.process_knowledge(subSet, newCount)
 
-                        #The new sentence is a subset of a sentence in the knowledge base
+                        # The new sentence is a subset of a sentence in the knowledge base
                         elif newSentence.cells.issubset(sentence.cells) and sentence != newSentence:
                             newCount = sentence.count - newSentence.count
                             subSet = sentence.cells.difference(newSentence.cells)
                             self.knowledge.append(Sentence(subSet, newCount))
-                            #Remove the now useless sentence from knowledge base
+                            # Remove the now useless sentence from knowledge base
                             if sentence in self.knowledge:
                                 self.knowledge.remove(sentence)
-                            #Update the knowledge base
+                            # Update the knowledge base
                             self.process_knowledge(subSet, newCount)
-                            
-        #Clean knowledge base of sentences with no cell left
+
+        # Clean knowledge base of sentences with no cell left
         self.clean_knowledge()
-        
+
     def make_safe_move(self):
         """
         Returns a safe cell to choose on the Minesweeper board.
@@ -256,11 +259,8 @@ class MinesweeperAI():
         """
         for safe in self.safes:
             if safe not in self.moves_made and safe not in self.mines:
-                return safe    
+                return safe
         return None
-        
-
-
 
     def make_random_move(self):
         """
@@ -284,12 +284,13 @@ class MinesweeperAI():
         for k in range(i - 1, i + 2):
             for l in range(j - 1, j + 2):
                 if (k >= 0 and k < self.height and l >= 0 and l < self.width) and not(k == i and l == j) and (k, l) not in self.moves_made and (k, l) not in self.safes:
-                        surroundings.add((k,l))
-        
+                    surroundings.add((k, l))
+
         return surroundings
 
-    #If, for a given sentence, there is no mine (count = 0), then mark all remaining cells as safe
-    #If, the number of mines is equal to the number of cells in the sentence, mark all cells as mines
+# If, for a given sentence, there is no mine (count = 0), then mark all remaining cells as safe
+# If, the number of mines is equal to the number of cells in the sentence, mark all cells as mines
+
     def process_knowledge(self, cells, count):
         if count == 0:
             for cell in cells.copy():
@@ -297,10 +298,10 @@ class MinesweeperAI():
         elif count == len(cells):
             for cell in cells.copy():
                 self.mark_mine(cell)
-            
 
 
-    #Remove empty knowledge and update knowledge
+# Remove empty knowledge and update knowledge
+
     def clean_knowledge(self):
         for knowledge in self.knowledge:
             if len(knowledge.cells) == 0:
