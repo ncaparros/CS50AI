@@ -108,7 +108,7 @@ class Sentence():
         if len(self.cells == True) == self.count:
             return self.cells
         elif self.count == 0:
-            return set()
+            return None
 
     def known_safes(self):
         """
@@ -117,7 +117,7 @@ class Sentence():
         if self.count == 0:
             return self.cells
         elif len(self.cells == True) == len(self.cells):
-            return set()
+            return None
 
     def mark_mine(self, cell):
         """
@@ -164,8 +164,11 @@ class MinesweeperAI():
         to mark that cell as a mine as well.
         """
         self.mines.add(cell)
-        for sentence in self.knowledge:
+        for sentence in self.knowledge.copy():
             sentence.mark_mine(cell)
+            #If the sentence is now empty, remove it from the knowledge base
+            if (sentence.cells) == 0:
+                self.knowledge.remove(sentence)
 
     def mark_safe(self, cell):
         """
@@ -175,6 +178,9 @@ class MinesweeperAI():
         self.safes.add(cell)
         for sentence in self.knowledge:
             sentence.mark_safe(cell)
+            #If the sentence is now empty, remove it from the knowledge base
+            if len(sentence.cells) == 0:
+                self.knowledge.remove(sentence)
 
     def add_knowledge(self, cell, count):
         """
@@ -191,28 +197,53 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
+
+        #Mark cell as mode made and mark it as safe
         self.moves_made.add(cell)
         self.mark_safe(cell)
-        surroundings = self.get_surrounding_cells(cell)
-        newSentence = Sentence(surroundings, count)
-        self.knowledge.append(newSentence)
-        if count == 0:
-            for surrounding in surroundings:
-                self.mark_safe(surrounding)
-        elif count == len(surroundings):
-            for surrounding in surroundings:
-                self.mark_mine(surrounding)
-        elif count == len(surroundings.intersection(self.mines)):
-            for surrounding in surroundings:
-                if surrounding not in self.safes:
-                    self.mark_mine(surrounding)
 
-        for sentence in self.knowledge :
-            if sentence != newSentence:
-                if sentence.cells.issubset(newSentence.cells):
-                    self.knowledge.append(Sentence(newSentence.cells - sentence.cells, newSentence.count - sentence.count))
-                elif newSentence.cells.issubset(sentence.cells):
-                    self.knowledge.append(Sentence(sentence.cells - newSentence.cells, sentence.count - newSentence.count))
+        #Get surroundings cells (mines and unknowns)
+        surroundings = self.get_surrounding_cells(cell)
+        if len(surroundings) > 0 :
+            for surrounding in surroundings.copy():
+                #If surrounding cell is a known mine, update the sentence
+                if surrounding in self.mines:
+                    count = count - 1
+                    surroundings.remove(surrounding)
+            newSentence = Sentence(surroundings, count)
+
+            #If the sentence not in knowledge base, add it
+            if newSentence not in self.knowledge and len(newSentence.cells) > 0:
+                self.knowledge.append(newSentence)
+                self.process_knowledge(surroundings, count)
+
+                #Look for subsets in the knowledge base
+                for sentence in self.knowledge.copy() :
+                    if sentence != newSentence and len(sentence.cells) > 0:
+                        #There is a subset of the new sentence in the knowledge base
+                        if sentence.cells.issubset(newSentence.cells) and sentence != newSentence :
+                            newCount = newSentence.count - sentence.count
+                            subSet = newSentence.cells.difference(sentence.cells)
+                            self.knowledge.append(Sentence(subSet, newCount))
+                            #Remove the now useless sentence from knowledge base
+                            if newSentence in self.knowledge:
+                                self.knowledge.remove(newSentence)
+                            #Update the knowledge base
+                            self.process_knowledge(subSet, newCount)
+
+                        #The new sentence is a subset of a sentence in the knowledge base
+                        elif newSentence.cells.issubset(sentence.cells) and sentence != newSentence:
+                            newCount = sentence.count - newSentence.count
+                            subSet = sentence.cells.difference(newSentence.cells)
+                            self.knowledge.append(Sentence(subSet, newCount))
+                            #Remove the now useless sentence from knowledge base
+                            if sentence in self.knowledge:
+                                self.knowledge.remove(sentence)
+                            #Update the knowledge base
+                            self.process_knowledge(subSet, newCount)
+                            
+        #Clean knowledge base of sentences with no cell left
+        self.clean_knowledge()
         
     def make_safe_move(self):
         """
@@ -224,8 +255,9 @@ class MinesweeperAI():
         and self.moves_made, but should not modify any of those values.
         """
         for safe in self.safes:
-            if safe not in self.moves_made:
+            if safe not in self.moves_made and safe not in self.mines:
                 return safe    
+        return None
         
 
 
@@ -238,19 +270,40 @@ class MinesweeperAI():
             2) are not known to be mines
         """
         notChosen = True
-        while notChosen and len(self.moves_made) < self.height * self.width:
+        while notChosen and len(self.moves_made) < self.height * self.width - len(self.mines):
             i = random.randint(0, self.height - 1)
             j = random.randint(0, self.width - 1)
             if (i, j) not in self.moves_made and (i, j) not in self.mines:
                 notChosen = False
                 return (i, j)
+        return None
 
     def get_surrounding_cells(self, cell):
         (i, j) = cell
         surroundings = set()
         for k in range(i - 1, i + 2):
             for l in range(j - 1, j + 2):
-                if (k >= 0 and k < self.height and l >= 0 and l < self.width) and not(k == i and l == j):
-                    surroundings.add((k,l))
+                if (k >= 0 and k < self.height and l >= 0 and l < self.width) and not(k == i and l == j) and (k, l) not in self.moves_made and (k, l) not in self.safes:
+                        surroundings.add((k,l))
         
         return surroundings
+
+    #If, for a given sentence, there is no mine (count = 0), then mark all remaining cells as safe
+    #If, the number of mines is equal to the number of cells in the sentence, mark all cells as mines
+    def process_knowledge(self, cells, count):
+        if count == 0:
+            for cell in cells.copy():
+                self.mark_safe(cell)
+        elif count == len(cells):
+            for cell in cells.copy():
+                self.mark_mine(cell)
+            
+
+
+    #Remove empty knowledge and update knowledge
+    def clean_knowledge(self):
+        for knowledge in self.knowledge:
+            if len(knowledge.cells) == 0:
+                self.knowledge.remove(knowledge)
+            else:
+                self.process_knowledge(knowledge.cells, knowledge.count)
