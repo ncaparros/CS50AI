@@ -3,6 +3,7 @@ Tic Tac Toe Player
 """
 
 import math
+import copy
 
 X = "X"
 O = "O"
@@ -59,31 +60,30 @@ def result(board, action):
     """
     Returns the board that results from making move (i, j) on the board.
     """
-    board[action[0]][action[1]] = player(board)
-    return board
+    copied_board = copy.deepcopy(board)
+    copied_board[action[0]][action[1]] = player(copied_board)
+    return copied_board
 
 
 def winner(board):
     """
     Returns the winner of the game, if there is one.
     """
+    # check for winning row
     if board[0].count(X) == 3 or board[1].count(X) == 3 or board[2].count(X) == 3:
         return X
     elif board[0].count(O) == 3 or board[1].count(O) == 3 or board[2].count(O) == 3:
         return O
-    elif board[0][0] == X and board[0][1] == X and board[0][2] == X:
-        return X
-    elif board[1][0] == X and board[1][1] == X and board[1][2] == X:
-        return X
-    elif board[2][0] == X and board[2][1] == X and board[2][2] == X:
-        return X
-    elif board[0][0] == O and board[0][1] == O and board[0][2] == O:
-        return O
-    elif board[1][0] == O and board[1][1] == O and board[1][2] == O:
-        return O
-    elif board[2][0] == O and board[2][1] == O and board[2][2] == O:
-        return O
-    elif board[0][0] == X and board[1][1] == X and board[2][2] == X:
+
+    # check for winning column
+    for i in range(3):
+        if board[0][i] == X and board[1][i] == X and board[2][i] == X:
+            return X
+        elif board[0][i] == O and board[1][i] == O and board[2][i] == O:
+            return O
+
+    # check for winning diagonal
+    if board[0][0] == X and board[1][1] == X and board[2][2] == X:
         return X
     elif board[0][2] == X and board[1][1] == X and board[2][0] == X:
         return X
@@ -94,17 +94,20 @@ def winner(board):
     else:
         return None
 
+
 def terminal(board):
     """
     Returns True if game is over, False otherwise.
     """
+    if winner(board) != None:
+        return True
+
     for i in range(3):
         for j in range(3):
             if board[i][j] == None:
                 return False
-    
+
     return True
-    
 
 
 def utility(board):
@@ -126,10 +129,37 @@ def minimax(board):
     if terminal(board):
         return None
 
+    possible_actions = actions(board)
     if player(board) == X:
-        get_max(board)
+        maxValue = -200
+        for action in possible_actions:
+            # move to be analyzed
+            move = result(board, action)
+            score = get_min(move)
+            # if X winner, return that move
+            if score == 1:
+                return (action[0], action[1])
+            # else, will return a move to tie
+            if maxValue < score:
+                best_move = (action[0], action[1])
+                maxValue = score
     else:
-        get_min(board)
+        minValue = 200
+        for action in possible_actions:
+            move = result(board, action)
+            score = get_max(move)
+            # if O winner, return that move
+            if score == -1:
+                return (action[0], action[1])
+            # else, will return a move to tie
+            if minValue > score:
+                best_move = (action[0], action[1])
+                minValue = score
+
+    return best_move
+
+# recursively get the minimized score
+
 
 def get_min(board):
     if terminal(board):
@@ -141,6 +171,9 @@ def get_min(board):
     for action in possible_actions:
         minValue = min(minValue, get_max(result(board, action)))
     return minValue
+
+# recursively get the maximized score
+
 
 def get_max(board):
     if terminal(board):
