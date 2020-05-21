@@ -9,7 +9,6 @@ X = "X"
 O = "O"
 EMPTY = None
 
-
 def initial_state():
     """
     Returns starting state of the board.
@@ -61,6 +60,9 @@ def result(board, action):
     Returns the board that results from making move (i, j) on the board.
     """
     copied_board = copy.deepcopy(board)
+    if board[action[0]][action[1]] != None:
+        raise NameError('This cell has already been played !')
+
     copied_board[action[0]][action[1]] = player(copied_board)
     return copied_board
 
