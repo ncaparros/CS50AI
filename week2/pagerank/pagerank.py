@@ -57,7 +57,28 @@ def transition_model(corpus, page, damping_factor):
     linked to by `page`. With probability `1 - damping_factor`, choose
     a link at random chosen from all pages in the corpus.
     """
-    raise NotImplementedError
+    transition_model = dict()
+    
+    nexts = corpus.get(page)
+    if len(nexts) == 0:
+        for key in corpus.keys():
+            transition_model[key] = 1/len(corpus)
+    else:
+        for next_page in nexts:
+            transition_model[next_page] = round(damping_factor/len(nexts), 4)
+
+        for value in corpus.keys():
+            if value not in transition_model:
+                transition_model[value] = round(damping_factor/len(corpus.keys()), 4)
+            else:
+                transition_model[value] += round(damping_factor/len(corpus.keys()), 4)
+
+    # if sum(transition_model.keys < 1):
+    #     for key in transition_model.keys():
+    #         transition_model[key] += 
+    return transition_model
+
+            
 
 
 def sample_pagerank(corpus, damping_factor, n):
@@ -69,7 +90,14 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    index = random.randint(0, len(corpus) - 1)
+    page = list(corpus.keys())[index]
+    for i in range(n):
+        trans_model = transition_model(corpus, page, damping_factor)
+
+        page = getRandomPage(trans_model)
+
+    return trans_model
 
 
 def iterate_pagerank(corpus, damping_factor):
@@ -81,8 +109,34 @@ def iterate_pagerank(corpus, damping_factor):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    pagerank_dict = dict()
+    for key in corpus.keys():
+        pagerank_dict[key] = round((1 - damping_factor)/len(corpus), 4)
 
+    max_value = 1
+    while max_value > 0.001:
+        max_value = 0
+        for key in corpus.keys():
+            new_value = 0
+            for page in corpus.keys():
+                if page != key:
+                    new_value += pagerank_dict[page] / len(corpus[page])
+            new_value = ((1 - damping_factor)/len(corpus)) + damping_factor * new_value
+
+            if max_value < pagerank_dict[key] - new_value:
+                max_value = new_value
+
+            pagerank_dict[key] = new_value
+    return pagerank_dict
+    
+
+def getRandomPage(transition_model):
+    rand = random.randint(0, 100)
+    cell = 0
+    for page in transition_model.items():
+        cell += page[1]*100
+        if rand <= cell:
+            return page[0]
 
 if __name__ == "__main__":
     main()
