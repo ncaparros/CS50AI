@@ -157,9 +157,11 @@ def iterate_pagerank(corpus, damping_factor):
 
             pagerank_dict[key] = new_value
 
+    # normalize results
+    total_value = sum(pagerank_dict.values())
     # round results
     for key in pagerank_dict.keys():
-        pagerank_dict[key] = round(pagerank_dict[key], 4)
+        pagerank_dict[key] = round(pagerank_dict[key]/total_value, 4)
 
     return pagerank_dict
 
